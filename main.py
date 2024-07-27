@@ -41,6 +41,7 @@ ui.CreateUI()
 
 last_frame = None
 last_inputs = None
+current_tab = None
 
 def MouseHandler():
     global last_left_clicked, last_right_clicked, left_clicked, right_clicked, last_mouse_x, last_mouse_y, mouse_x, mouse_y, move_start
@@ -113,8 +114,6 @@ while variables.BREAK == False:
         text_x = round(-text_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
         text_y = round(-text_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
         cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, text_fontscale, (0, 255, 0), text_thickness)
-
-        print("render")
 
         frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
         if last_frame != frame:
