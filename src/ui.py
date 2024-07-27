@@ -67,6 +67,9 @@ def CreateUI():
     tab_annotate.grid_columnconfigure(0, weight=1)
     tabControl.add(tab_annotate, text='Annotate')
 
+    tab_overview = ttk.Frame(tabControl)
+    tabControl.add(tab_overview, text='Overview')
+
     tab_settings = ttk.Frame(tabControl)
     tabControl.add(tab_settings, text='Settings')
 
@@ -74,6 +77,9 @@ def CreateUI():
     global tk_frame
     tk_frame = tkinter.Label(tab_annotate, image=ImageTk.PhotoImage(Image.fromarray(background)))
     tk_frame.grid(row=0, column=0, padx=0, pady=0, columnspan=2)
+
+
+    uicomponents.MakeLabel(tab_overview, "here it should show the assigned batches for the user and maybe stats or something", row=0, column=0, padx=15, pady=10, sticky="nw", font=("Segoe UI", 11))
 
 
     uicomponents.MakeLabel(tab_settings, "Theme:", row=0, column=0, padx=15, pady=10, sticky="nw", font=("Segoe UI", 11))

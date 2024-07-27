@@ -15,6 +15,8 @@ WINDOWNAME = "Annotation App"
 
 WEBSERVER_URL = "https://api.ets2la.com"
 
+CLASSES = ["car", "truck"]  # THIS IS TEMPORARILY HARDCODED FOR NOW
+
 FPS = 60
 THEME = settings.Get("UI", "theme", "dark")
 
