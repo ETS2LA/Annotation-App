@@ -98,15 +98,14 @@ threading.Thread(target=MouseHandler, daemon=True).start()
 def KeyHandler():
     global pressed_keys
     pressed_keys = []
-    keyshortcuts_back = settings.Get("Keyboard", "Back", "ctrl+z")
-    keyshortcuts_forward = settings.Get("Keyboard", "Forward", "ctrl+y")
-    keyshortcuts_classes = [settings.Get("Keyboard", classname, i + 1) for i, classname in enumerate(variables.CLASSES)]
+    keyshortcuts_back = settings.Get("Keybinds", "Back", "ctrl+z")
+    keyshortcuts_forward = settings.Get("Keybinds", "Forward", "ctrl+y")
+    keyshortcuts_classes = [settings.Get("Keybinds", classname, str(i + 1)) if len(str(i + 1)) == 1 else settings.Get("Keybinds", classname, chr(i + 88).lower()) for i, classname in enumerate(variables.CLASSES)]
     def check_key_combination(combination):
         special_keys = {
             "ctrl": 0x11,   # VK_CONTROL
             "shift": 0x10,  # VK_SHIFT
-            "alt": 0x12,    # VK_MENU
-            "win": 0x5B     # VK_LWIN (left Windows key)
+            "alt": 0x12     # VK_MENU
         }
         vk_key_codes = [
             ctypes.windll.user32.VkKeyScanA(ord(key)) & 0xFF if len(key) == 1 else special_keys.get(key.lower())

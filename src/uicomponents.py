@@ -41,7 +41,7 @@ def MakeCheckButton(parent, text:str, category:str, setting:str, row:int, column
 
 def MakeComboEntry(parent, text:str, category:str, setting:str, row: int, column: int, width: int=10, padx: int=5, pady: int=5, labelwidth:int=15, isFloat:bool=False, isString:bool=False, value="", sticky:str="w", labelSticky:str="w", labelPadX:int=10):
 
-    label = ttk.Label(parent, text=text, width=labelwidth).grid(row=row, column=column, sticky=labelSticky, padx=labelPadX)
+    label = ttk.Label(parent, text=text, width=labelwidth).grid(row=row, column=column+1, sticky=labelSticky, padx=labelPadX)
 
     if not isFloat and not isString:
         var = tk.IntVar()
@@ -73,7 +73,7 @@ def MakeComboEntry(parent, text:str, category:str, setting:str, row: int, column
         else:
             var.set(setting)
 
-    entry = ttk.Entry(parent, textvariable=var, width=width, validatecommand=lambda: settings.Create(category, setting, var.get())).grid(row=row, column=column+1, sticky=sticky, padx=padx, pady=pady)
+    entry = ttk.Entry(parent, textvariable=var, width=width, validatecommand=lambda: settings.Create(category, setting, var.get())).grid(row=row, column=column, sticky=sticky, padx=padx, pady=pady)
 
     return var
 

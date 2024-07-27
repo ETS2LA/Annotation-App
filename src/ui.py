@@ -14,8 +14,8 @@ import cv2
 import os
 
 def Initialize():
-    width = settings.Get("UI", "width", 1000)
-    height = settings.Get("UI", "height", 600)
+    width = settings.Get("UI", "width", 1280)
+    height = settings.Get("UI", "height", 720)
     x = settings.Get("UI", "x", 0)
     y = settings.Get("UI", "y", 0)
     variables.THEME = settings.Get("UI", "theme", "dark")
@@ -109,10 +109,32 @@ def CreateUI():
             console.HideConsole()
         else:
             console.RestoreConsole()
-    uicomponents.MakeCheckButton(tab_settings, "Hide Console", "Console", "HideConsole", row=5, column=0, padx=20, pady=0, width=11, callback=lambda: ChangeHideConsole())
+    uicomponents.MakeCheckButton(tab_settings, "Hide Console", "Console", "HideConsole", row=4, column=0, padx=20, pady=0, width=11, callback=lambda: ChangeHideConsole())
 
     def ChangeResizable():
         resizable = settings.Get("UI", "resizable", False)
         variables.ROOT.resizable(resizable, resizable)
         ChangeTheme(variables.THEME)
-    uicomponents.MakeCheckButton(tab_settings, "Resizeable", "UI", "resizable", row=6, column=0, padx=20, pady=0, width=11, callback=lambda: ChangeResizable())
+    uicomponents.MakeCheckButton(tab_settings, "Resizeable", "UI", "resizable", row=5, column=0, padx=20, pady=0, width=11, callback=lambda: ChangeResizable())
+
+    uicomponents.MakeLabel(tab_settings, "\nKeybinds", row=6, column=0, padx=15, pady=10, sticky="nw", font=("Segoe UI", 11))
+
+    settings.Get("Keybinds", "Save", "ctrl+s")
+    uicomponents.MakeComboEntry(tab_settings, "Save", "Keybinds", "Save", row=8, column=1, padx=0, pady=5, width=7, labelwidth=11, labelPadX=3)
+    settings.Get("Keybinds", "Back", "ctrl+z")
+    uicomponents.MakeComboEntry(tab_settings, "Back/Revert", "Keybinds", "Back", row=8, column=3, padx=0, pady=5, width=7, labelwidth=11, labelPadX=3)
+    settings.Get("Keybinds", "Forward", "ctrl+y")
+    uicomponents.MakeComboEntry(tab_settings, "Forward/Redo", "Keybinds", "Forward", row=8, column=5, padx=0, pady=5, width=7, labelwidth=11, labelPadX=3)
+
+    uicomponents.MakeLabel(tab_settings, "\nClass Keybinds", row=9, column=0, padx=15, pady=10, sticky="nw", font=("Segoe UI", 11))
+
+    [settings.Get("Keybinds", classname, str(i + 1)) if len(str(i + 1)) == 1 else settings.Get("Keybinds", classname, chr(i + 88).lower()) for i, classname in enumerate(variables.CLASSES)]
+
+    for i in range(len(variables.CLASSES) // 5 + 1):
+        for j in range(5):
+            if i * 5 + j >= len(variables.CLASSES):
+                break
+            classname = variables.CLASSES[i * 5 + j]
+            uicomponents.MakeComboEntry(tab_settings, classname, "Keybinds", classname, row=10 + i, column=1 + j * 2, padx=0, pady=5, width=7, labelwidth=16, labelPadX=3)
+
+    uicomponents.MakeButton(tab_settings, "Save Settings", lambda: print("test"), row=20, column=0, padx=15, pady=10, sticky="nw")
