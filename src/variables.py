@@ -13,6 +13,8 @@ with open(PATH + "version.txt") as f: VERSION = f.read()
 RUN = True
 WINDOWNAME = "Annotation App"
 
+WEBSERVER_URL = "https://api.ets2la.com"
+
 FPS = 60
 THEME = settings.Get("UI", "theme", "dark")
 
