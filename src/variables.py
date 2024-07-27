@@ -13,7 +13,7 @@ with open(PATH + "version.txt") as f: VERSION = f.read()
 RUN = True
 WINDOWNAME = "Annotation App"
 
-WEBSERVER_URL = "https://api.ets2la.com"
+WEBSERVER_URL = "https://data.ets2la.com/api"
 
 CLASSES = ["car", "truck"]  # THIS IS TEMPORARILY HARDCODED FOR NOW
 
