@@ -1,1 +1,4 @@
-python files/main.py
+@echo off
+cd %~dp0
+python main.py
+pause
