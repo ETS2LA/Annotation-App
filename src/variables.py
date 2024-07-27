@@ -16,6 +16,9 @@ WINDOWNAME = "Annotation App"
 FPS = 60
 THEME = settings.Get("UI", "theme", "dark")
 
+ZOOM = 1
+POSITION = (settings.Get("UI", "width", 1000)) // 2, (settings.Get("UI", "height", 600) - 40) // 2
+
 sct = mss.mss()
 SCRENN_X = sct.monitors[1]["left"]
 SCRENN_Y = sct.monitors[1]["top"]
