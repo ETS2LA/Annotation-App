@@ -149,7 +149,7 @@ def UnassignBatch(username, batch_id):
     else:
         return {"status": False, "error": json_modify_request.text, "code": json_modify_request.status_code}
 
-def GetImages(batch_id):
+def GetImagesAndAnnotations(batch_id):
     '''
     Gets a list of images from the webserver
 
@@ -157,14 +157,16 @@ def GetImages(batch_id):
         batch_id (str): The ID of the batch
 
     Returns:
-        dict: A dictionary containing data with the images or None if the request failed
+        dict: A dictionary containing data with the images and annotations or None if the request failed
     '''
     data = {"path": f"/data/Batch{batch_id}"}
     images = []
+    annotations = []
+
     request = requests.get(f"{WEBSERVER_URL}/file/list", data=json.dumps(data), headers=HEADERS)
     if request.status_code == 200:
         for file in request.json()["files"]:
-            if file["name"].endswith(".png") or file["name"].endswith(".jpg"):
+            if file["name"].endswith(".png"):
                 image_request = requests.get(f"{WEBSERVER_URL}/file/get", data=json.dumps({"path": f"/data/Batch{batch_id}/{file['name']}"}), headers=HEADERS)
                 if image_request.status_code == 200:
                     encoded_string = image_request.json()["content"]
@@ -172,8 +174,15 @@ def GetImages(batch_id):
                     nparr = np.frombuffer(byte_data, np.uint8)
                     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                     images.append({"image": image, "name": file["name"]})
+                    
+                    annotation_request = requests.get(f"{WEBSERVER_URL}/file/get", data=json.dumps({"path": f"/data/Batch{batch_id}/{file['name'].replace('.png', '.txt')}"}), headers=HEADERS)
+                    if annotation_request.status_code == 200:
+                        annotation = annotation_request.json()["content"]
+                        annotations.append({"annotation": annotation, "name": file["name"].replace(".png", ".txt")})
+                    else:
+                        return {"status": False, "error": annotation_request.text, "code": annotation_request.status_code}
                 else:
                     return {"status": False, "error": image_request.text, "code": image_request.status_code}
-        return {"status": True, "images": images}
+        return {"status": True, "images": images, "annotations": annotations}
     else:
         return {"status": False, "error": request.text, "code": request.status_code}
