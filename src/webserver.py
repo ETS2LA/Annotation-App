@@ -17,6 +17,7 @@ batch.json template:
 '''
 
 WEBSERVER_URL = "https://data.ets2la.com/api"
+HEARTBEAT_URL = "https://data.ets2la.com/heartbeat"
 HEADERS = {"Content-Type": "application/json"}
 
 def CheckConnection():
@@ -26,11 +27,8 @@ def CheckConnection():
     Returns:
         dict: A dictionary containing the status of the request
     '''
-    request = requests.get(WEBSERVER_URL, headers=HEADERS)
+    request = requests.get(HEARTBEAT_URL, headers=HEADERS)
     if request.status_code == 200:
-        return {"status": True}
-    # Temprorarily hardcoded until we have a heartbeat function (This means the webserver is online but the root does not exist)
-    elif request.text == '{"detail":"Not Found"}': 
         return {"status": True}
     else:
         return {"status": False, "error": request.text, "code": request.status_code}
@@ -42,7 +40,7 @@ def GetClasses():
     Returns:
         dict: A dictionary containing data with the classes or None if the request failed
     '''
-    data = {"path": "/data/classes.txt"}
+    data = {"path": "data/classes.txt"}
     request = requests.get(f"{WEBSERVER_URL}/file", data=json.dumps(data), headers=HEADERS)
     if request.status_code == 200:
         return {"status": True, "classes": request.json()["content"]}
@@ -186,3 +184,9 @@ def GetImagesAndAnnotations(batch_id):
         return {"status": True, "images": images, "annotations": annotations}
     else:
         return {"status": False, "error": request.text, "code": request.status_code}
+    
+classes = "car\ntruck\nvan\nbus\nstop_sign\nyield_sign\nspeedlimit_sign\ninfo_sign\nmandatory_sign\nwarning_sign\npriority_sign\nprohibitary_sign\nregulatory_sign\nservice_sign\nrailroad_sign\nadditional_sign\nroad_marker\ntraffic_cone\ngreen_traffic_light\nyellow_traffic_light\nred_traffic_light\nroad_marking"
+#request = requests.get(f"{WEBSERVER_URL}/file/add", data=json.dumps({"path": "data/classes.txt", "data": classes}), headers=HEADERS)
+
+print(CheckConnection())
+print(GetClasses())
