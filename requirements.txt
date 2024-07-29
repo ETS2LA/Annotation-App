@@ -1,0 +1,16 @@
+opencv-python
+win32console
+threading
+traceback
+requests
+win32gui
+win32com
+pynput
+ctypes
+pillow
+base64
+sv_ttk
+mouse
+numpy
+json
+mss
