@@ -1,16 +1,9 @@
 opencv-python
-win32console
-threading
-traceback
 requests
-win32gui
-win32com
+pywin32
 pynput
-ctypes
 pillow
-base64
 sv_ttk
 mouse
 numpy
-json
 mss
