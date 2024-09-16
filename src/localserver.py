@@ -17,12 +17,15 @@ def _yolo_format(class_id, x1, y1, x2, y2, img_width, img_height):
 images_path = os.path.join(variables.PATH, "assets", "Images")
 annotations_path = os.path.join(variables.PATH, "assets", "Annotations")
 
-def LoadLocalImages():
-    images = os.listdir(images_path)
+def LoadLocalImages() -> list[list[str, cv2.Mat]]:
+    images = [[x] for x in os.listdir(images_path)]
 
     for i, image in enumerate(images):
-        if not os.path.exists(os.path.join(annotations_path, image.split(".")[0] + ".txt")):
-            images[i][1] = cv2.imread(image)
+        print(f"\rLoading Images... ({i}/{len(images)})", end="")
+        if not os.path.exists(os.path.join(annotations_path, image[0].split(".")[0] + ".txt")):
+            images[i].append(cv2.imread(os.path.join(images_path, image[0])))
+        else:
+            images.remove(image)
 
     return images # [["1.pmg", img], ["2.png", img], ...]
 

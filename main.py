@@ -1,3 +1,4 @@
+import src.localserver as localserver
 import src.variables as variables
 import src.settings as settings
 import src.console as console
@@ -36,12 +37,14 @@ if remote_version != variables.VERSION and settings.Get("Update", "AutoUpdate", 
 else:
     print("No update available, current version: " + variables.VERSION)
 
+images = localserver.LoadLocalImages()
 ui.Initialize()
 ui.CreateUI()
 
 last_frame = None
 last_inputs = None
 current_tab = None
+last_theme = variables.THEME
 
 def MouseHandler():
     global last_left_clicked, last_right_clicked, left_clicked, right_clicked, last_mouse_x, last_mouse_y, mouse_x, mouse_y, move_start
@@ -138,7 +141,7 @@ def KeyHandler():
             time.sleep(time_to_sleep)
 threading.Thread(target=KeyHandler, daemon=True).start()
 
-last_theme = variables.THEME
+index = 0
 while variables.BREAK == False:
     start = time.time()
 
@@ -162,12 +165,25 @@ while variables.BREAK == False:
             POSITION = variables.POSITION
             ZOOM = variables.ZOOM
 
-            text, text_fontscale, text_thickness, text_width, text_height = utils.get_text_size(text = f"pressed shortcuts: {pressed_keys}",
-                                                                                                text_width = 500 * variables.ZOOM,
-                                                                                                max_text_height = ui.background.shape[0])
-            text_x = round(-text_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
-            text_y = round(-text_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
-            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, text_fontscale, (0, 255, 0), text_thickness)
+            # Resize the overlay image according to the ZOOM factor.
+            overlay_img = images[index][1]
+            overlay_height, overlay_width = overlay_img.shape[:2]
+            overlay_img = cv2.resize(overlay_img, (int(overlay_width * ZOOM), int(overlay_height * ZOOM)))
+
+            # Get the new width and height of the resized image.
+            new_overlay_height, new_overlay_width = overlay_img.shape[:2]
+
+            # Calculate where to place the image (top-left corner).
+            image_x = round(-new_overlay_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
+            image_y = round(-new_overlay_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
+
+            # Ensure the coordinates stay within bounds of the frame.
+            image_x = max(0, min(image_x, frame.shape[1] - new_overlay_width))
+            image_y = max(0, min(image_y, frame.shape[0] - new_overlay_height))
+
+            # Overlay the image on the frame (basic blending, handling transparency if necessary).
+            # Assuming 3-channel image and frame, or handle alpha if image has 4 channels.
+            frame[image_y:image_y+new_overlay_height, image_x:image_x+new_overlay_width] = overlay_img
 
             frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
             if last_frame != frame:
