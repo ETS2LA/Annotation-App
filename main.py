@@ -138,6 +138,7 @@ def KeyHandler():
             time.sleep(time_to_sleep)
 threading.Thread(target=KeyHandler, daemon=True).start()
 
+last_theme = variables.THEME
 while variables.BREAK == False:
     start = time.time()
 
@@ -149,29 +150,33 @@ while variables.BREAK == False:
               right_clicked,
               pressed_keys]
 
-    if current_tab == "Annotate" and last_inputs != inputs:
-        if ui.background.shape != (variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3):
-            ui.background = ui.numpy.zeros((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
-            ui.background[:] = ((250, 250, 250) if variables.THEME == "light" else (28, 28, 28))
-        frame = ui.background.copy()
+    if current_tab == "Annotate":
+        if last_inputs != inputs or last_theme != variables.THEME:
+            if ui.background.shape != (variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3):
+                if variables.THEME == "dark":
+                    ui.background = ui.numpy.zeros((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
+                else:
+                    ui.background = ui.numpy.ones((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
+            frame = ui.background.copy()
 
-        POSITION = variables.POSITION
-        ZOOM = variables.ZOOM
+            POSITION = variables.POSITION
+            ZOOM = variables.ZOOM
 
-        text, text_fontscale, text_thickness, text_width, text_height = utils.get_text_size(text = f"pressed shortcuts: {pressed_keys}",
-                                                                                            text_width = 500 * variables.ZOOM,
-                                                                                            max_text_height = ui.background.shape[0])
-        text_x = round(-text_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
-        text_y = round(-text_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
-        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, text_fontscale, (0, 255, 0), text_thickness)
+            text, text_fontscale, text_thickness, text_width, text_height = utils.get_text_size(text = f"pressed shortcuts: {pressed_keys}",
+                                                                                                text_width = 500 * variables.ZOOM,
+                                                                                                max_text_height = ui.background.shape[0])
+            text_x = round(-text_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
+            text_y = round(-text_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
+            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, text_fontscale, (0, 255, 0), text_thickness)
 
-        frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
-        if last_frame != frame:
-            ui.tk_frame.configure(image=frame)
-            ui.tk_frame.image = frame
-            last_frame = frame
+            frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
+            if last_frame != frame:
+                ui.tk_frame.configure(image=frame)
+                ui.tk_frame.image = frame
+                last_frame = frame
 
-        last_inputs = inputs
+            last_inputs = inputs
+            last_theme = variables.THEME
 
     variables.ROOT.update()
 
