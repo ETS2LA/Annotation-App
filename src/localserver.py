@@ -19,11 +19,10 @@ annotations_path = os.path.join(variables.PATH, "assets", "Annotations")
 
 def LoadLocalImages() -> list[list[str, cv2.Mat]]:
     images = [[x] for x in os.listdir(images_path)]
-
     for i, image in enumerate(images):
-        print(f"\rLoading Images... ({i}/{len(images)})", end="")
+        print(f"\rLoading Images... ({i}/{len(images)})          ", end="")
         if not os.path.exists(os.path.join(annotations_path, image[0].split(".")[0] + ".txt")):
-            images[i].append(cv2.imread(os.path.join(images_path, image[0])))
+            images[i].append(cv2.cvtColor(cv2.imread(os.path.join(images_path, image[0])), cv2.COLOR_BGR2RGB))
         else:
             images.remove(image)
 
