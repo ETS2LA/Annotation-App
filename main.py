@@ -225,9 +225,9 @@ class Button:
 
     def selected(self):
         return self.button_selected
-    
-forward_button = Button("Forward", 0, 0, 0, 0, 20, "Annotation App", 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
-back_button = Button("Back", 0, 0, 0, 0, 20, "Annotation App", 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+
+forward_button = Button("Forward", 0, 0, 0, 0, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+back_button = Button("Back", 0, 0, 0, 0, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
 
 index = 0
 while variables.BREAK == False:
