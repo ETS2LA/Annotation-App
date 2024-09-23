@@ -5,5 +5,5 @@
 /settings.json
 
 # Ignore images and annotations
-/assets/Images/
-/assets/Annotations/
+#/assets/Images/
+#/assets/Annotations/

@@ -5,6 +5,7 @@ import src.console as console
 import src.utils as utils
 import src.ui as ui
 
+import numpy as np
 import traceback
 import threading
 import requests
@@ -47,10 +48,10 @@ current_tab = None
 last_theme = variables.THEME
 
 def MouseHandler():
-    global last_left_clicked, last_right_clicked, left_clicked, right_clicked, last_mouse_x, last_mouse_y, mouse_x, mouse_y, move_start
-    last_left_clicked = False
+    global last_middle_clicked, last_right_clicked, middle_clicked, right_clicked, last_mouse_x, last_mouse_y, mouse_x, mouse_y, move_start
+    last_middle_clicked = False
     last_right_clicked = False
-    left_clicked = False
+    middle_clicked = False
     right_clicked = False
     last_mouse_x = 0
     last_mouse_y = 0
@@ -70,28 +71,38 @@ def MouseHandler():
         window_x, window_y, window_width, window_height = tl[0], tl[1] + 40, br[0] - tl[0], br[1] - tl[1]
         mouse_x, mouse_y = mouse.get_position()
 
-        left_clicked = ctypes.windll.user32.GetKeyState(0x01) & 0x8000 != 0 and window_x <= mouse_x <= window_x + window_width and window_y <= mouse_y <= window_y + window_height
+        # Detect middle click for movement and right click for other actions
+        middle_clicked = ctypes.windll.user32.GetKeyState(0x04) & 0x8000 != 0 and window_x <= mouse_x <= window_x + window_width and window_y <= mouse_y <= window_y + window_height
         right_clicked = ctypes.windll.user32.GetKeyState(0x02) & 0x8000 != 0 and window_x <= mouse_x <= window_x + window_width and window_y <= mouse_y <= window_y + window_height
 
+        # If mouse is within the window
         if window_x <= mouse_x <= window_x + window_width and window_y <= mouse_y <= window_y + window_height:
             with pynput.mouse.Events() as events:
                 event = events.get()
+                # Handle zoom with mouse scroll
                 if isinstance(event, pynput.mouse.Events.Scroll):
+                    # Get canvas coordinates for proper zoom
                     canvas_x = (mouse_x - window_x - variables.POSITION[0]) / variables.ZOOM
                     canvas_y = (mouse_y - window_y - variables.POSITION[1]) / variables.ZOOM
+                    # Adjust zoom, with upper and lower limits
                     if variables.ZOOM < 10000:
                         variables.ZOOM = variables.ZOOM * 1.1 if event.dy > 0 else variables.ZOOM / 1.1
                     elif event.dy < 0:
                         variables.ZOOM /= 1.1
+                    # Adjust the position so zoom is centered on mouse location
                     variables.POSITION = (mouse_x - window_x - canvas_x * variables.ZOOM, mouse_y - window_y - canvas_y * variables.ZOOM)
 
-            if right_clicked == False:
-                move_start = mouse_x - variables.POSITION[0], mouse_y - variables.POSITION[1]
-            else:
-                variables.POSITION = (mouse_x - move_start[0]), (mouse_y - move_start[1])
+            # Handle movement with middle click
+            if middle_clicked:
+                if not last_middle_clicked:
+                    # Store the starting point of the movement
+                    move_start = mouse_x - variables.POSITION[0], mouse_y - variables.POSITION[1]
+                else:
+                    # Update the position based on movement
+                    variables.POSITION = (mouse_x - move_start[0], mouse_y - move_start[1])
 
         last_mouse_x, last_mouse_y = mouse_x, mouse_y
-        last_left_clicked, last_right_clicked = left_clicked, right_clicked
+        last_middle_clicked, last_right_clicked = middle_clicked, right_clicked
 
         time_to_sleep = 1/variables.FPS - (time.time() - start)
         if time_to_sleep > 0:
@@ -141,6 +152,83 @@ def KeyHandler():
             time.sleep(time_to_sleep)
 threading.Thread(target=KeyHandler, daemon=True).start()
 
+class Button:
+    def __init__(self, text: str, x1: int, y1: int, x2: int, y2: int, fontsize: int, window_name : str, round_corners: int = 5,
+                 text_color: tuple = (255, 255, 255), button_color: tuple = (40, 40, 40),
+                 button_hover_color: tuple = (50, 50, 50), button_selected_color: tuple = (30, 30, 30)) -> None:
+        self.text = text
+        self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
+        self.fontsize = fontsize
+        self.window_name = window_name
+        self.round_corners = round_corners
+        self.text_color = text_color
+        self.button_color = button_color
+        self.button_hover_color = button_hover_color
+        self.button_selected_color = button_selected_color
+        self.button_selected = False
+        self.button_hovered = False
+
+        self.text, self.text_fontscale, self.text_thickness, self.text_width, self.text_height = utils.get_text_size(text, x2 - x1, fontsize)
+
+    def render(self, frame):
+        window_x, window_y = win32gui.GetWindowRect(self.window_name)
+        relative_mouse_x, relative_mouse_y = utils.get_mouse_pos(window_x, window_y)
+        mouse_clicked = mouse.is_pressed(button="left")
+        
+        if self._is_mouse_inside_button(relative_mouse_x, relative_mouse_y):
+            if mouse_clicked:
+                self._select_button()
+            else:
+                self._hover_button()
+        else:
+            self._reset_button()
+
+        self._draw_button(frame)
+
+    def _select_button(self):
+        self.button_hovered = False
+        self.button_selected = True
+
+    def _hover_button(self):
+        self.button_hovered = True
+        self.button_selected = False
+
+    def _reset_button(self):
+        self.button_hovered = False
+        self.button_selected = False
+
+    def _is_mouse_inside_button(self, mouse_x, mouse_y):
+        return self.x1 <= mouse_x <= self.x2 and self.y1 <= mouse_y <= self.y2
+
+    def _draw_button(self, frame: np.ndarray):
+        button_color = self._get_button_color()
+        cv2.rectangle(frame, (round(self.x1 + self.round_corners / 2), round(self.y1 + self.round_corners / 2)),
+                      (round(self.x2 - self.round_corners / 2), round(self.y2 - self.round_corners / 2)),
+                      button_color, self.round_corners, cv2.LINE_AA)
+        cv2.rectangle(frame, (round(self.x1 + self.round_corners / 2), round(self.y1 + self.round_corners / 2)),
+                      (round(self.x2 - self.round_corners / 2), round(self.y2 - self.round_corners / 2)),
+                      button_color, -1, cv2.LINE_AA)
+        cv2.putText(frame, self.text, 
+                    (round(self.x1 + (self.x2 - self.x1) / 2 - self.text_width / 2),
+                     round(self.y1 + (self.y2 - self.y1) / 2 + self.text_height / 2)),
+                    cv2.FONT_HERSHEY_SIMPLEX, self.text_fontscale, self.text_color, self.text_thickness, cv2.LINE_AA)
+
+    def _get_button_color(self):
+        if self.button_selected:
+            return self.button_selected_color
+        if self.button_hovered:
+            return self.button_hover_color
+        return self.button_color
+
+    def hovered(self):
+        return self.button_hovered
+
+    def selected(self):
+        return self.button_selected
+    
+forward_button = Button("Forward", 0, 0, 0, 0, 20, "Annotation App", 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+back_button = Button("Back", 0, 0, 0, 0, 20, "Annotation App", 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+
 index = 0
 while variables.BREAK == False:
     start = time.time()
@@ -149,7 +237,7 @@ while variables.BREAK == False:
 
     inputs = [variables.POSITION,
               variables.ZOOM,
-              left_clicked,
+              middle_clicked,
               right_clicked,
               pressed_keys]
 
@@ -174,17 +262,21 @@ while variables.BREAK == False:
             new_overlay_height, new_overlay_width = overlay_img.shape[:2]
 
             # Calculate where to place the image (top-left corner).
-            image_x = round(-new_overlay_width // 2 + (POSITION[0] * 1/ZOOM) * ZOOM)
-            image_y = round(-new_overlay_height // 2 + (POSITION[1] * 1/ZOOM) * ZOOM)
+            image_x = round(-new_overlay_width // 2 + (POSITION[0] * 1 / ZOOM) * ZOOM)
+            image_y = round(-new_overlay_height // 2 + (POSITION[1] * 1 / ZOOM) * ZOOM)
 
-            # Ensure the coordinates stay within bounds of the frame.
-            image_x = max(0, min(image_x, frame.shape[1] - new_overlay_width))
-            image_y = max(0, min(image_y, frame.shape[0] - new_overlay_height))
+            # Calculate the visible region of the image that fits in the frame
+            x_offset = max(0, -image_x)
+            y_offset = max(0, -image_y)
+            visible_width = min(new_overlay_width - x_offset, frame.shape[1] - max(0, image_x))
+            visible_height = min(new_overlay_height - y_offset, frame.shape[0] - max(0, image_y))
 
-            # Overlay the image on the frame (basic blending, handling transparency if necessary).
-            # Assuming 3-channel image and frame, or handle alpha if image has 4 channels.
-            frame[image_y:image_y+new_overlay_height, image_x:image_x+new_overlay_width] = overlay_img
-
+            # If there's any visible part, overlay it on the frame
+            if visible_width > 0 and visible_height > 0:
+                frame[max(0, image_y):max(0, image_y) + visible_height, max(0, image_x):max(0, image_x) + visible_width] = overlay_img[y_offset:y_offset + visible_height, x_offset:x_offset + visible_width]
+            else:
+                pass
+                
             frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
             if last_frame != frame:
                 ui.tk_frame.configure(image=frame)
