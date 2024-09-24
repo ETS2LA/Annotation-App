@@ -171,7 +171,10 @@ class Button:
         self.text, self.text_fontscale, self.text_thickness, self.text_width, self.text_height = utils.get_text_size(text, x2 - x1, fontsize)
 
     def render(self, frame):
-        window_x, window_y = win32gui.GetWindowRect(self.window_name)
+        rect = win32gui.GetClientRect(variables.HWND)
+        tl = win32gui.ClientToScreen(variables.HWND, (rect[0], rect[1]))
+        window_x, window_y = tl[0], tl[1] + 40
+
         relative_mouse_x, relative_mouse_y = utils.get_mouse_pos(window_x, window_y)
         mouse_clicked = mouse.is_pressed(button="left")
         
@@ -188,7 +191,7 @@ class Button:
     def _select_button(self):
         self.button_hovered = False
         self.button_selected = True
-
+        
     def _hover_button(self):
         self.button_hovered = True
         self.button_selected = False
@@ -226,71 +229,96 @@ class Button:
     def selected(self):
         return self.button_selected
 
-forward_button = Button("Forward", 0, 0, 0, 0, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
-back_button = Button("Back", 0, 0, 0, 0, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+window_width = settings.Get("UI", "width", 1280)
+window_height = settings.Get("UI", "height", 720)
+
+back_button = Button("<-", 0, window_height / 2 - 50, 50, window_height / 2 + 50, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+forward_button = Button("->", window_width - 50, window_height / 2 - 50, window_width, window_height / 2 + 50, 20, variables.WINDOWNAME, 5, (255, 255, 255), (40, 40, 40), (50, 50, 50), (30, 30, 30))
+back_button_clicked_last = False
+forward_button_clicked_last = False
 
 index = 0
-while variables.BREAK == False:
+cached_zoom = None
+resized_overlay_img = None
+
+while not variables.BREAK:
     start = time.time()
 
     current_tab = ui.tabControl.tab(ui.tabControl.select(), "text")
-
-    inputs = [variables.POSITION,
-              variables.ZOOM,
-              middle_clicked,
-              right_clicked,
-              pressed_keys]
+    inputs = [variables.POSITION, variables.ZOOM, middle_clicked, right_clicked, pressed_keys]
 
     if current_tab == "Annotate":
-        if last_inputs != inputs or last_theme != variables.THEME:
-            if ui.background.shape != (variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3):
-                if variables.THEME == "dark":
-                    ui.background = ui.numpy.zeros((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
-                else:
-                    ui.background = ui.numpy.ones((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
-            frame = ui.background.copy()
+        if ui.background.shape != (variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3):
+            if variables.THEME == "dark":
+                ui.background = ui.numpy.zeros((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
+            else:
+                ui.background = ui.numpy.ones((variables.ROOT.winfo_height() - 40, variables.ROOT.winfo_width(), 3), ui.numpy.uint8)
 
-            POSITION = variables.POSITION
-            ZOOM = variables.ZOOM
+        frame = ui.background.copy()
 
-            # Resize the overlay image according to the ZOOM factor.
+        POSITION = variables.POSITION
+        ZOOM = variables.ZOOM
+
+        # Resize image only when ZOOM changes (caching mechanism)
+        if ZOOM != cached_zoom:
             overlay_img = images[index][1]
             overlay_height, overlay_width = overlay_img.shape[:2]
-            overlay_img = cv2.resize(overlay_img, (int(overlay_width * ZOOM), int(overlay_height * ZOOM)))
-
-            # Get the new width and height of the resized image.
-            new_overlay_height, new_overlay_width = overlay_img.shape[:2]
-
-            # Calculate where to place the image (top-left corner).
-            image_x = round(-new_overlay_width // 2 + (POSITION[0] * 1 / ZOOM) * ZOOM)
-            image_y = round(-new_overlay_height // 2 + (POSITION[1] * 1 / ZOOM) * ZOOM)
-
-            # Calculate the visible region of the image that fits in the frame
-            x_offset = max(0, -image_x)
-            y_offset = max(0, -image_y)
-            visible_width = min(new_overlay_width - x_offset, frame.shape[1] - max(0, image_x))
-            visible_height = min(new_overlay_height - y_offset, frame.shape[0] - max(0, image_y))
-
-            # If there's any visible part, overlay it on the frame
-            if visible_width > 0 and visible_height > 0:
-                frame[max(0, image_y):max(0, image_y) + visible_height, max(0, image_x):max(0, image_x) + visible_width] = overlay_img[y_offset:y_offset + visible_height, x_offset:x_offset + visible_width]
-            else:
+            try:
+                resized_overlay_img = cv2.resize(overlay_img, (int(overlay_width * ZOOM), int(overlay_height * ZOOM)))
+                cached_zoom = ZOOM
+            except:
                 pass
-                
-            frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
-            if last_frame != frame:
-                ui.tk_frame.configure(image=frame)
-                ui.tk_frame.image = frame
-                last_frame = frame
 
-            last_inputs = inputs
-            last_theme = variables.THEME
+        new_overlay_height, new_overlay_width = resized_overlay_img.shape[:2]
+
+        # Calculate top-left placement of the image considering zoom level
+        image_x = round(-new_overlay_width // 2 + (POSITION[0] * 1 / ZOOM) * ZOOM)
+        image_y = round(-new_overlay_height // 2 + (POSITION[1] * 1 / ZOOM) * ZOOM)
+
+        # Calculate visible bounds to avoid processing unnecessary parts
+        x_offset = max(0, -image_x)
+        y_offset = max(0, -image_y)
+        visible_width = min(new_overlay_width - x_offset, frame.shape[1] - max(0, image_x))
+        visible_height = min(new_overlay_height - y_offset, frame.shape[0] - max(0, image_y))
+
+        # Only overlay visible portions
+        if visible_width > 0 and visible_height > 0:
+            frame[max(0, image_y):max(0, image_y) + visible_height, max(0, image_x):max(0, image_x) + visible_width] = \
+                resized_overlay_img[y_offset:y_offset + visible_height, x_offset:x_offset + visible_width]
+
+        # Render UI elements
+        back_button.render(frame)
+        forward_button.render(frame)
+
+        if back_button.selected() and not back_button_clicked_last:
+            index = max(0, index - 1)
+            back_button_clicked_last = True
+        else:
+            back_button_clicked_last = False
+
+        if forward_button.selected() and not forward_button_clicked_last:
+            index = min(len(images) - 1, index + 1)
+            forward_button_clicked_last = True
+        else:
+            forward_button_clicked_last = False
+
+        # Update the UI only if the frame changes
+        new_frame = ui.ImageTk.PhotoImage(ui.Image.fromarray(frame))
+        if last_frame != new_frame:
+            ui.tk_frame.configure(image=new_frame)
+            ui.tk_frame.image = new_frame
+            last_frame = new_frame
+
+        last_inputs = inputs
+        last_theme = variables.THEME
 
     variables.ROOT.update()
 
-    time_to_sleep = 1/variables.FPS - (time.time() - start)
+    # FPS regulation
+    time_to_sleep = 1 / variables.FPS - (time.time() - start)
     if time_to_sleep > 0:
         time.sleep(time_to_sleep)
+
 
 if settings.Get("Console", "HideConsole", False):
     console.RestoreConsole()

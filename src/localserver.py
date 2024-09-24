@@ -19,14 +19,13 @@ annotations_path = os.path.join(variables.PATH, "assets", "Annotations")
 
 def LoadLocalImages() -> list[list[str, cv2.Mat]]:
     images = [[x] for x in os.listdir(images_path)]
+    images = [x for x in images if not os.path.exists(os.path.join(images_path, x[0].replace(".png", ".txt")))]
+    
     for i, image in enumerate(images):
         print(f"\rLoading Images... ({i}/{len(images)})          ", end="")
-        if not os.path.exists(os.path.join(annotations_path, image[0].split(".")[0] + ".txt")):
-            images[i].append(cv2.cvtColor(cv2.imread(os.path.join(images_path, image[0])), cv2.COLOR_BGR2RGB))
-        else:
-            images.remove(image)
-
-    return images # [["1.pmg", img], ["2.png", img], ...]
+        image.append(cv2.cvtColor(cv2.imread(os.path.join(images_path, image[0])), cv2.COLOR_BGR2RGB))
+    
+    return images
 
 def SaveAnnotation(image_name : str, yolo_annotation : list[list[str, int, int, int, int]], img_size : list[int, int]):
     '''
